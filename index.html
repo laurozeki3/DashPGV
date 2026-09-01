@@ -1,596 +1,821 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de Obras - Mapeamento de Propostas</title>
-    
-    <!-- Bibliotecas Externas -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
-    
-    <style>
-        :root {
-            --sidebar-bg: #1e2235;
-            --main-bg: #f4f7fe;
-            --primary: #4361ee;
-            --text-main: #2b3674;
-            --text-secondary: #a3aed0;
-            --white: #ffffff;
-            --shadow: 0px 4px 20px rgba(0, 0, 0, 0.05);
-            --success: #05cd99;
-            --gold: #ffb800;
-            --danger: #ee5d50;
-            --warning: #ffb81c;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Registro de Vazamento — CORSAN SURFRO</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'DM Sans', 'Segoe UI', sans-serif; background: var(--main-bg); color: var(--text-main); height: 100vh; overflow: hidden; }
+  :root {
+    --azul: #0027BD;
+    --turquesa: #17E3CB;
+    --branco: #FFFFFF;
+    --cinza-bg: #F0F2F8;
+    --cinza-borda: #D1D5E8;
+    --cinza-texto: #6B7280;
+    --preto: #111827;
+    --vermelho: #FF5C60;
+    --verde: #1D9E75;
+    --radius: 14px;
+    --radius-sm: 10px;
+  }
 
-        #app-container { display: flex; height: 100vh; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
-        /* Sidebar */
-        #sidebar { width: 240px; background: var(--sidebar-bg); color: white; padding: 25px 15px; display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto; }
-        .logo { font-size: 1.2rem; font-weight: bold; margin-bottom: 30px; display: flex; align-items: center; gap: 10px; color: var(--white); }
-        
-        .sidebar-section-title { font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 12px; text-transform: uppercase; font-weight: bold; border-bottom: 1px solid #2a2f45; padding-bottom: 5px; }
-        
-        .sidebar-filter-group { margin-bottom: 20px; }
-        .sidebar-filter-group label { display: block; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; font-weight: bold; }
-        .sidebar-filter-group select { width: 100%; padding: 10px; border-radius: 8px; border: none; background: #2a2f45; color: white; font-size: 0.85rem; outline: none; }
-        
-        .upload-group { margin-bottom: 15px; }
-        .upload-label { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px; background: #2a2f45; color: #fff; border-radius: 8px; cursor: pointer; font-size: 0.75rem; transition: background 0.3s; border: 1px dashed #4a5568; }
-        .upload-label:hover { background: #353b55; }
-        .upload-label.loaded { border-color: var(--success); color: var(--success); }
-        .upload-group input { display: none; }
-        
-        .btn-reset { width: 100%; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: bold; margin-top: 10px; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cinza-bg);
+    min-height: 100vh;
+    color: var(--preto);
+    padding-bottom: 60px;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
 
-        /* Main Content */
-        #main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 20px; gap: 20px; }
+  /* HEADER */
+  .header {
+    background: var(--azul);
+    padding: 24px 20px 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: -20px;
+    right: -20px;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: rgba(23,227,203,0.15);
+  }
+  .header-badge {
+    display: inline-block;
+    background: rgba(23,227,203,0.2);
+    color: var(--turquesa);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 999px;
+    margin-bottom: 8px;
+  }
+  .header h1 {
+    color: white;
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  .header p {
+    color: rgba(255,255,255,0.65);
+    font-size: 14px;
+    margin-top: 6px;
+  }
 
-        /* KPI Cards */
-        .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; flex-shrink: 0; }
-        .kpi-card { background: var(--white); padding: 20px; border-radius: 15px; box-shadow: var(--shadow); display: flex; justify-content: space-between; align-items: center; }
-        .kpi-info h4 { font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 5px; text-transform: uppercase; font-weight: 700; }
-        .kpi-info .value { font-size: 1.2rem; font-weight: 800; color: var(--text-main); }
-        
-        .kpi-icon-wrapper { width: 48px; height: 48px; border-radius: 12px; display: flex !important; align-items: center !important; justify-content: center !important; }
-        .kpi-icon-wrapper i { font-size: 1.4rem !important; display: block !important; }
-        
-        .icon-capex { background: rgba(67, 97, 238, 0.1); color: var(--primary) !important; }
-        .icon-opex { background: rgba(5, 205, 153, 0.1); color: var(--success) !important; }
-        .icon-vaz { background: rgba(238, 93, 80, 0.1); color: var(--danger) !important; }
-        .icon-pressao { background: rgba(255, 184, 28, 0.1); color: var(--warning) !important; }
+  /* GPS STATUS */
+  .gps-bar {
+    margin: 14px 14px 0;
+    background: white;
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid var(--cinza-borda);
+  }
+  .gps-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #FCD34D;
+    flex-shrink: 0;
+    animation: pulse 1.5s infinite;
+  }
+  .gps-dot.ok { background: var(--verde); animation: none; }
+  .gps-dot.erro { background: var(--vermelho); animation: none; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .gps-info { flex: 1; }
+  .gps-label { font-size: 12px; color: var(--cinza-texto); }
+  .gps-coords {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--preto);
+    font-weight: 500;
+    margin-top: 3px;
+  }
+  .gps-btn {
+    background: var(--cinza-bg);
+    border: 1px solid var(--cinza-borda);
+    border-radius: var(--radius-sm);
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--azul);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    white-space: nowrap;
+  }
+  .coords-manual {
+    display: none;
+    margin: 12px 14px 0;
+    background: #FFF8E6;
+    border: 1px solid #FCD34D;
+    border-radius: var(--radius);
+    padding: 12px 14px;
+  }
+  .coords-manual.show { display: block; }
+  .coords-manual p {
+    font-size: 12px;
+    color: #92400E;
+    margin-bottom: 10px;
+    font-weight: 500;
+  }
+  .coords-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .coords-row .field { margin-bottom: 0; }
 
-        /* Middle Section */
-        .middle-section { display: flex; gap: 20px; flex: 1; min-height: 0; }
-        .map-card { background: var(--white); border-radius: 15px; box-shadow: var(--shadow); padding: 20px; display: flex; flex-direction: column; flex: 2; min-width: 0; position: relative; }
-        .right-column { display: flex; flex-direction: column; flex: 1; gap: 20px; min-width: 0; }
-        .table-card { background: var(--white); border-radius: 15px; box-shadow: var(--shadow); padding: 20px; display: flex; flex-direction: column; flex: 1.8; min-height: 0; }
-        .ranking-card { background: var(--white); border-radius: 15px; box-shadow: var(--shadow); padding: 20px; display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        
-        .card-title { font-size: 1rem; font-weight: bold; margin-bottom: 15px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 8px; }
-        #map { flex: 1; border-radius: 10px; z-index: 1; width: 100%; background: #eee; }
+  /* FORM */
+  .form-card {
+    margin: 12px 14px 0;
+    background: white;
+    border-radius: var(--radius);
+    border: 1px solid var(--cinza-borda);
+    overflow: hidden;
+  }
+  .form-section {
+    padding: 18px 16px;
+    border-bottom: 1px solid var(--cinza-bg);
+  }
+  .form-section:last-child { border-bottom: none; }
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--cinza-texto);
+    margin-bottom: 12px;
+  }
 
-        /* Legenda do Mapa */
-        .map-legend {
-            position: absolute;
-            bottom: 30px;
-            left: 30px;
-            background: white;
-            padding: 12px;
-            border-radius: 10px;
-            box-shadow: var(--shadow);
-            z-index: 1000;
-            font-size: 0.75rem;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            border: 1px solid #f0f0f0;
-        }
-        .legend-item { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--text-main); }
-        .legend-color { width: 14px; height: 14px; border-radius: 3px; }
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--cinza-texto);
+    margin-bottom: 6px;
+  }
+  .field label span.req { color: var(--vermelho); margin-left: 2px; }
 
-        /* Table Styles */
-        .table-container { overflow: auto; flex: 1; margin-top: 5px; border-radius: 8px; }
-        table { width: 100%; border-collapse: collapse; min-width: 450px; }
-        thead { position: sticky; top: 0; background: var(--white); z-index: 2; }
-        th { text-align: left; padding: 8px; color: var(--text-secondary); font-size: 0.6rem; text-transform: uppercase; border-bottom: 1px solid #f4f7fe; }
-        td { padding: 8px; font-size: 0.7rem; border-bottom: 1px solid #f4f7fe; }
-        tr { cursor: pointer; transition: background 0.2s; }
-        tr:hover { background: #f0f3ff; }
-        tr.active-row { background: #e0e7ff !important; }
-        .td-rank { font-weight: bold; color: var(--primary); width: 30px; text-align: center; }
+  .field input,
+  .field select,
+  .field textarea {
+    width: 100%;
+    background: var(--cinza-bg);
+    border: 1.5px solid var(--cinza-borda);
+    border-radius: var(--radius-sm);
+    padding: 14px 14px;
+    font-size: 16px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--preto);
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .field select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+  }
+  .field textarea { resize: none; height: 100px; line-height: 1.6; }
+  .field input:focus,
+  .field select:focus,
+  .field textarea:focus {
+    border-color: var(--azul);
+    background: white;
+  }
 
-        /* Ranking Styles */
-        .ranking-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 5px; }
-        .ranking-item { display: flex; align-items: center; gap: 12px; padding: 10px; background: #f8faff; border-radius: 10px; transition: transform 0.2s; cursor: pointer; }
-        .ranking-item:hover { transform: translateX(5px); background: #f0f3ff; }
-        .rank-number { width: 24px; height: 24px; background: var(--text-secondary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; flex-shrink: 0; }
-        .ranking-item:nth-child(1) .rank-number { background: var(--gold); }
-        .ranking-item:nth-child(2) .rank-number { background: #c0c0c0; }
-        .ranking-item:nth-child(3) .rank-number { background: #cd7f32; }
-        .rank-info { flex: 1; min-width: 0; }
-        .rank-name { font-size: 0.75rem; font-weight: bold; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .rank-city { font-size: 0.65rem; color: var(--text-secondary); }
-        .rank-value { font-size: 0.85rem; font-weight: bold; color: var(--primary); }
+  /* PILL GROUP (Ramal/Rede/Cavalete) */
+  .pill-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .pill-option {
+    flex: 1;
+    min-width: 80px;
+    text-align: center;
+    padding: 14px 8px;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--cinza-borda);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--cinza-texto);
+    background: var(--cinza-bg);
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .pill-option.selected {
+    background: #E8EDFB;
+    border-color: var(--azul);
+    color: var(--azul);
+  }
+  .pill-option input { display: none; }
 
-        /* Tooltip Styles */
-        .leaflet-popup-content-wrapper { background: white !important; border: none !important; box-shadow: none !important; border-radius: 8px !important; }
-        .leaflet-popup-tip { box-shadow: none !important; }
-        .custom-tooltip { text-align: center; padding: 5px; min-width: 240px; font-family: 'DM Sans', sans-serif; }
-        .tooltip-header { font-size: 0.7rem; color: #888; text-transform: uppercase; margin-bottom: 8px; display: flex; justify-content: center; gap: 10px; }
-        .tooltip-main-item { color: #1a4a7c; font-size: 1.2rem; font-weight: bold; margin-bottom: 4px; }
-        .tooltip-desc { font-size: 0.8rem; color: #666; margin-bottom: 12px; line-height: 1.3; }
-        .tooltip-highlight { font-size: 1.3rem; font-weight: bold; color: #1a4a7c; margin: 8px 0; }
-        .tooltip-label-mini { font-size: 0.65rem; font-weight: bold; color: #999; text-transform: uppercase; margin-bottom: 2px; }
-        .tooltip-row-inline { display: flex; justify-content: center; gap: 12px; font-size: 0.75rem; color: #444; margin-top: 10px; border-top: 1px solid #f0f0f0; padding-top: 10px; }
-        .tooltip-item-box { display: flex; flex-direction: column; align-items: center; }
-        .tooltip-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 10px 0; border-top: 1px solid #f0f0f0; padding-top: 10px; }
-        .tooltip-footer-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; border-top: 1px solid #f0f0f0; padding-top: 10px; font-size: 0.7rem; }
+  /* FOTOS */
+  .fotos-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .fotos-grid:empty { margin-bottom: 0; }
+  .foto-thumb {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    border: 1px solid var(--cinza-borda);
+    background: var(--cinza-bg);
+  }
+  .foto-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .foto-remove {
+    position: absolute;
+    top: 4px; right: 4px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: rgba(17,24,39,0.75);
+    color: white;
+    border: none;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .foto-add {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 18px;
+    border: 1.5px dashed var(--cinza-borda);
+    border-radius: var(--radius-sm);
+    background: var(--cinza-bg);
+    cursor: pointer;
+    color: var(--azul);
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .foto-add:active { background: #E8EDFB; border-color: var(--azul); }
+  .foto-add.hide { display: none; }
+  .foto-add-icon { font-size: 22px; font-weight: 300; line-height: 1; }
+  .foto-add-text { font-size: 13px; font-weight: 500; }
+  .foto-hint { font-weight: 400; color: var(--cinza-texto); }
 
-        #loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--white); display: flex; justify-content: center; align-items: center; z-index: 9999; flex-direction: column; gap: 15px; }
-        .spinner { width: 30px; height: 30px; border: 3px solid #f3f3f3; border-top: 3px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        .overlay-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 1000; background: rgba(255,255,255,0.9); padding: 20px; border-radius: 15px; box-shadow: var(--shadow); }
-    </style>
+  /* SUBMIT */
+  .submit-wrap { padding: 16px 14px 20px; }
+  .btn-submit {
+    width: 100%;
+    background: var(--azul);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    padding: 18px;
+    font-size: 17px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn-submit:active { transform: scale(0.98); }
+  .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-submit .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+  .btn-submit.loading .spinner { display: block; }
+  .btn-submit.loading .btn-text { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--preto);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 999;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.sucesso { background: var(--verde); }
+  .toast.erro { background: var(--vermelho); }
+
+  /* SUCCESS STATE */
+  .success-screen {
+    display: none;
+    text-align: center;
+    padding: 48px 24px;
+  }
+  .success-screen.show { display: block; }
+  .success-icon {
+    width: 64px; height: 64px;
+    background: #EAF3DE;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    font-size: 28px;
+  }
+  .success-screen h2 { font-size: 18px; margin-bottom: 8px; }
+  .success-screen p { color: var(--cinza-texto); font-size: 14px; margin-bottom: 24px; }
+  .btn-novo {
+    background: var(--azul);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    padding: 14px 32px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+  }
+</style>
 </head>
 <body>
 
-<div id="loading">
-    <div class="spinner"></div>
-    <p style="font-size: 0.9rem; color: var(--text-secondary);">Aguardando arquivos...</p>
+<div class="header">
+  <div class="header-badge">CORSAN SURFRO</div>
+  <h1>Registro de Vazamento</h1>
+  <p>Preencha os dados e envie o registro</p>
 </div>
 
-<div id="app-container">
-    <!-- Sidebar -->
-    <div id="sidebar">
-        <div class="logo"><i class="fas fa-map-location-dot"></i> <span>Propostas Oeste</span></div>
-        
-        <div class="sidebar-section-title">Importar Dados</div>
-        
-        <div class="upload-group">
-            <label for="upload-excel" id="label-excel" class="upload-label">
-                <i class="fas fa-file-excel"></i> <span>Planilha Base (.xlsx)</span>
-            </label>
-            <input type="file" id="upload-excel" accept=".xlsx" />
-        </div>
-        
-        <div class="upload-group">
-            <label for="upload-ainf" id="label-ainf" class="upload-label">
-                <i class="fas fa-draw-polygon"></i> <span>GeoJSON AINF</span>
-            </label>
-            <input type="file" id="upload-ainf" accept=".geojson,.json" />
-        </div>
-        
-        <div class="upload-group">
-            <label for="upload-itens" id="label-itens" class="upload-label">
-                <i class="fas fa-map-pin"></i> <span>GeoJSON Itens</span>
-            </label>
-            <input type="file" id="upload-itens" accept=".geojson,.json" />
-        </div>
-
-        <div class="sidebar-section-title">Filtros</div>
-        
-        <div class="sidebar-filter-group">
-            <label>Município</label>
-            <select id="filter-cidade"><option value="">Todos</option></select>
-        </div>
-        <div class="sidebar-filter-group">
-            <label>Obra</label>
-            <select id="filter-obra"><option value="">Todas as Obras</option></select>
-        </div>
-        <button id="btn-reset" class="btn-reset">Limpar Filtros</button>
-    </div>
-
-    <!-- Main Content -->
-    <div id="main-content">
-        <div id="empty-state-msg" class="overlay-msg">
-            <i class="fas fa-cloud-upload-alt" style="font-size: 3rem; color: var(--primary); margin-bottom: 15px; display: block;"></i>
-            <h3>Dashboard Pronto</h3>
-            <p style="color: var(--text-secondary); margin-top: 10px;">Por favor, carregue os arquivos na barra lateral para visualizar os dados.</p>
-        </div>
-
-        <!-- KPI Cards -->
-        <div class="kpi-grid">
-            <div class="kpi-card">
-                <div class="kpi-info">
-                    <h4>Investimento Total</h4>
-                    <div id="kpi-capex" class="value">R$ 0</div>
-                </div>
-                <div class="kpi-icon-wrapper icon-capex">
-                    <i class="fas fa-wallet"></i>
-                </div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-info">
-                    <h4>Redução OPEX</h4>
-                    <div id="kpi-opex" class="value">R$ 0</div>
-                </div>
-                <div class="kpi-icon-wrapper icon-opex">
-                    <i class="fas fa-hand-holding-dollar"></i>
-                </div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-info">
-                    <h4>Vazamentos Evitados</h4>
-                    <div id="kpi-vaz" class="value">0</div>
-                </div>
-                <div class="kpi-icon-wrapper icon-vaz">
-                    <i class="fas fa-faucet-drip"></i>
-                </div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-info">
-                    <h4>Red. Pressão Média</h4>
-                    <div id="kpi-pressao" class="value">0 mca</div>
-                </div>
-                <div class="kpi-icon-wrapper icon-pressao">
-                    <i class="fas fa-gauge-high"></i>
-                </div>
-            </div>
-        </div>
-
-        <!-- Middle Section -->
-        <div class="middle-section">
-            <div class="map-card">
-                <div id="map-title" class="card-title">Mapeamento de Propostas</div>
-                <div id="map"></div>
-                
-                <!-- Legenda do Mapa -->
-                <div class="map-legend">
-                    <div class="legend-item"><div class="legend-color" style="background: #2240c7ff;"></div> VRP</div>
-                    <div class="legend-item"><div class="legend-color" style="background: #e24f4fff;"></div> Registro</div>
-                    <div class="legend-item"><div class="legend-color" style="background: #3feb39ff;"></div> Rede</div>
-                    <div class="legend-item"><div class="legend-color" style="background: #02c9ccff; opacity: 0.6; border: 1px solid #00ced1;"></div> Área de Influência</div>
-                </div>
-            </div>
-            
-            <div class="right-column">
-                <div class="table-card">
-                    <div class="card-title"><i class="fas fa-sort-amount-down" style="color: var(--primary);"></i> Detalhamento por item</div>
-                    <div class="table-container">
-                        <table id="table-itens">
-                            <thead>
-                                <tr>
-                                    <th style="width: 30px; text-align: center;">#</th>
-                                    <th>Item</th>
-                                    <th>Descrição</th>
-                                    <th>QNTD / UNID</th>
-                                    <th>DN/CV/M³</th>
-                                    <th>PU</th>
-                                    <th>Capex</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                </div>
-                
-                <div class="ranking-card">
-                    <div class="card-title"><i class="fas fa-trophy" style="color: var(--gold);"></i> Top 5 Obras por TIR</div>
-                    <div id="ranking-list" class="ranking-list"></div>
-                </div>
-            </div>
-        </div>
-    </div>
+<!-- GPS STATUS -->
+<div class="gps-bar">
+  <div class="gps-dot" id="gpsDot"></div>
+  <div class="gps-info">
+    <div class="gps-label" id="gpsLabel">Obtendo localização...</div>
+    <div class="gps-coords" id="gpsCoords">—</div>
+  </div>
+  <button class="gps-btn" onclick="obterGPS()">Atualizar</button>
 </div>
+
+<!-- COORDENADAS MANUAIS (aparece só quando GPS falha) -->
+<div class="coords-manual" id="coordsManual">
+  <p>⚠️ GPS indisponível — insira as coordenadas manualmente</p>
+  <div class="coords-row">
+    <div class="field">
+      <label>Latitude</label>
+      <input type="number" id="latManual" placeholder="-29.173908" step="any" inputmode="decimal">
+    </div>
+    <div class="field">
+      <label>Longitude</label>
+      <input type="number" id="lonManual" placeholder="-54.863664" step="any" inputmode="decimal">
+    </div>
+  </div>
+</div>
+
+<!-- FORMULÁRIO -->
+<div id="formView">
+  <form id="formVazamento" onsubmit="enviarFormulario(event)">
+
+    <!-- IDENTIFICAÇÃO -->
+    <div class="form-card">
+      <div class="form-section">
+        <div class="section-title">Identificação</div>
+
+        <div class="field">
+          <label>Responsável <span class="req">*</span></label>
+          <select id="responsavel" required>
+            <option value="">Selecione...</option>
+            <option>Douglas Frey</option>
+            <option>Douglas Machado</option>
+            <option>Felipe</option>
+            <option>Pedro Augusto</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Cidade <span class="req">*</span></label>
+          <select id="cidade" required>
+            <option value="">Selecione...</option>
+            <optgroup label="Alegrete">
+              <option>ALEGRETE</option>
+              <option>MANOEL VIANA</option>
+              <option>QUARAI</option>
+            </optgroup>
+            <optgroup label="Rosário do Sul">
+              <option>CACEQUI</option>
+              <option>DOM PEDRITO</option>
+              <option>ROSARIO DO SUL</option>
+              <option>SAO VICENTE DO SUL</option>
+            </optgroup>
+            <optgroup label="Santiago">
+              <option>BOSSOROCA</option>
+              <option>CAIBATE</option>
+              <option>JAGUARI</option>
+              <option>NOVA ESPERANCA DO SUL</option>
+              <option>SANTIAGO</option>
+              <option>SANTO ANTONIO DAS MISSOES</option>
+              <option>SAO FRANCISCO DE ASSIS</option>
+              <option>SAO LUIZ GONZAGA</option>
+              <option>SAO MIGUEL DAS MISSOES</option>
+              <option>SAO NICOLAU</option>
+              <option>UNISTALDA</option>
+            </optgroup>
+            <optgroup label="São Borja">
+              <option>BARRA DO QUARAI</option>
+              <option>ITAQUI</option>
+              <option>MACAMBARA</option>
+              <option>SAO BORJA</option>
+            </optgroup>
+            <optgroup label="Santa Rosa">
+              <option>ALECRIM</option>
+              <option>GIRUA</option>
+              <option>HORIZONTINA</option>
+              <option>MAURICIO CARDOSO</option>
+              <option>SANTA ROSA</option>
+              <option>SANTO CRISTO</option>
+              <option>TUCUNDUVA</option>
+              <option>TUPARENDI</option>
+            </optgroup>
+            <optgroup label="Santo Ângelo">
+              <option>CAMPINA DAS MISSOES</option>
+              <option>CANDIDO GODOI</option>
+              <option>CERRO LARGO</option>
+              <option>ENTRE IJUIS</option>
+              <option>GUARANI DAS MISSOES</option>
+              <option>PORTO LUCENA</option>
+              <option>PORTO XAVIER</option>
+              <option>SANTO ANGELO</option>
+            </optgroup>
+            <optgroup label="Três Passos">
+              <option>BARRA DO GUARITA</option>
+              <option>BOA VISTA DO BURICA</option>
+              <option>BOM PROGRESSO</option>
+              <option>BRAGA</option>
+              <option>CAMPO NOVO</option>
+              <option>CHIAPETTA</option>
+              <option>CORONEL BICACO</option>
+              <option>CRISSIUMAL</option>
+              <option>DERRUBADAS</option>
+              <option>HUMAITA</option>
+              <option>INDEPENDENCIA</option>
+              <option>INHACORA</option>
+              <option>MIRAGUAI</option>
+              <option>REDENTORA</option>
+              <option>SANTO AUGUSTO</option>
+              <option>SAO JOSE DO INHACORA</option>
+              <option>SAO MARTINHO</option>
+              <option>SEDE NOVA</option>
+              <option>TENENTE PORTELA</option>
+              <option>TIRADENTES DO SUL</option>
+              <option>TRES DE MAIO</option>
+              <option>TRES PASSOS</option>
+              <option>VISTA GAUCHA</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>HD (Hidrômetro)</label>
+          <input type="text" id="hd" placeholder="Ex: Y24DM0429871" autocomplete="off">
+        </div>
+      </div>
+    </div>
+
+    <!-- LOCAL -->
+    <div class="form-card">
+      <div class="form-section">
+        <div class="section-title">Local do Vazamento</div>
+
+        <div class="field">
+          <label>Endereço <span class="req">*</span></label>
+          <input type="text" id="endereco" placeholder="Rua, número, bairro" required autocomplete="off">
+        </div>
+
+        <div class="field">
+          <label>Onde está o vazamento? <span class="req">*</span></label>
+          <div class="pill-group" id="localGroup">
+            <label class="pill-option" onclick="selecionarLocal(this)">
+              <input type="radio" name="local" value="Ramal"> Ramal
+            </label>
+            <label class="pill-option" onclick="selecionarLocal(this)">
+              <input type="radio" name="local" value="Rede"> Rede
+            </label>
+            <label class="pill-option" onclick="selecionarLocal(this)">
+              <input type="radio" name="local" value="Cavalete"> Cavalete
+            </label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Tipo de Pavimento <span class="req">*</span></label>
+          <select id="pavimento" required>
+            <option value="">Selecione...</option>
+            <option>Asfalto</option>
+            <option>Terra</option>
+            <option>Calçada</option>
+            <option>Bloco Paralelo</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- DESCRIÇÃO -->
+    <div class="form-card">
+      <div class="form-section">
+        <div class="section-title">Descrição</div>
+        <div class="field">
+          <label>Descrição do vazamento <span class="req">*</span></label>
+          <textarea id="descricao" placeholder="Descreva o vazamento, intensidade, observações..." required></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- FOTOS -->
+    <div class="form-card">
+      <div class="form-section">
+        <div class="section-title">Fotos</div>
+        <div class="field">
+          <label>Fotos do vazamento <span class="foto-hint">(opcional, até 4)</span></label>
+          <div class="fotos-grid" id="fotosGrid"></div>
+          <label class="foto-add" id="fotoAddBtn">
+            <input type="file" id="fotoInput" accept="image/*" capture="environment" multiple hidden>
+            <span class="foto-add-icon">+</span>
+            <span class="foto-add-text">Adicionar foto</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUBMIT -->
+    <div class="submit-wrap">
+      <button type="submit" class="btn-submit" id="btnSubmit">
+        <span class="btn-text">Enviar Registro</span>
+        <div class="spinner"></div>
+      </button>
+    </div>
+
+  </form>
+</div>
+
+<!-- SUCCESS SCREEN -->
+<div class="success-screen" id="successScreen">
+  <div class="success-icon">✓</div>
+  <h2>Registro enviado!</h2>
+  <p>O vazamento foi registrado com sucesso e já está disponível no sistema.</p>
+  <button class="btn-novo" onclick="novoRegistro()">Novo Registro</button>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
 
 <script>
-    const CITY_MAP = {
-        "ALECRIM": "Alecrim", "ALEGRETE": "Alegrete", "BARRA DO GUARITA": "Barra Do Guarita",
-        "BARRA DO QUARAI": "Barra do Quaraí", "BOA VISTA DO BURICA": "Boa Vista do Buricá",
-        "BOM PROGRESSO": "Bom Progressso", "BOSSOROCA": "Bossoroca", "BRAGA": "Braga",
-        "CACEQUI": "Cacequi", "CAIBATE": "Caibaté", "CAMPINA DAS MISSOES": "Campina das Missões",
-        "CAMPO NOVO": "Campo Novo", "CANDIDO GODOI": "Cândido Godói", "CERRO LARGO": "Cerro Largo",
-        "CHIAPETTA": "Chiapetta", "CORONEL BICACO": "Coronel Bicaco", "CRISSIUMAL": "Crissiumal",
-        "DERRUBADAS": "Derrubadas", "DOM PEDRITO": "Dom pedrito", "ENTRE IJUIS": "Entre-Ijuís",
-        "GIRUA": "Giruá", "GUARANI DAS MISSÕES": "Guarani das Missões", "HORIZONTINA": "Horizontina",
-        "HUMAITA": "Humaitá", "INDEPENDENCIA": "Independência", "INHACORA": "Inhacorá",
-        "ITAQUI": "Itaqui", "JAGUARI": "Jaguari", "MACAMBARA": "Maçambará", "MANOEL VIANA": "Manoel Viana",
-        "MAURICIO CARDOSO": "Dr. Maurício Cardoso", "MIRAGUAI": "Miraguaí", "NOVA ESPERANCA DO SUL": "Nova esperança do sul",
-        "PORTO LUCENA": "Porto Lucena", "PORTO XAVIER": "Porto Xavier", "QUARAI": "Quaraí",
-        "REDENTORA": "Redentora", "ROSARIO DO SUL": "Rosário do sul", "SANTA ROSA": "Santa Rosa",
-        "SANTIAGO": "Santiago", "SANTO ANGELO": "Santo Ângelo", "SANTO ANTONIO DAS MISSOES": "Santo Antônio das Missões",
-        "SANTO AUGUSTO": "Santo Augusto", "SANTO CRISTO": "Santo Cristo", "SAO BORJA": "São Borja",
-        "SAO FRANCISCO DE ASSIS": "São Francisco de Assis", "SAO JOSE DO INHACORA": "São José do Inhacorá",
-        "SAO LUIZ GONZAGA": "São Luiz Gonzaga", "SAO MARTINHO": "São Martinho", "SAO MIGUEL DAS MISSOES": "São Miguel das Missões",
-        "SAO NICOLAU": "São Nicolau", "SAO VICENTE DO SUL": "São vicente do sul", "SEDE NOVA": "Sede Nova",
-        "TENENTE PORTELA": "Tenente Portela", "TIRADENTES DO SUL": "Tiradentes do Sul", "TRES DE MAIO": "Três de Maio",
-        "TRES PASSOS": "Três Passos", "TUCUNDUVA": "Tucunduva", "TUPARENDI": "Tuparendi",
-        "UNISTALDA": "Unistalda", "VISTA GAUCHA": "Vista Gaúcha"
+  const WEBHOOK_URL = "https://default8991054ce9874297a373f9cf0e0c47.ec.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/ec368440bf6c4f70b1014f9429de4509/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=ePKK9p1gbrBNyT8vINw9kWItIKZWSM6I6ZmGTinGBvw";
+
+  let latitude = null;
+  let longitude = null;
+  let localSelecionado = null;
+  let fotos = [];
+  const MAX_FOTOS = 4;
+
+  // GPS
+  function obterGPS() {
+    const dot = document.getElementById('gpsDot');
+    const label = document.getElementById('gpsLabel');
+    const coords = document.getElementById('gpsCoords');
+
+    dot.className = 'gps-dot';
+    label.textContent = 'Obtendo localização...';
+    coords.textContent = '—';
+
+    if (!navigator.geolocation) {
+      dot.className = 'gps-dot erro';
+      label.textContent = 'GPS não suportado neste dispositivo';
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        latitude = pos.coords.latitude;
+        longitude = pos.coords.longitude;
+        const acc = Math.round(pos.coords.accuracy);
+        dot.className = 'gps-dot ok';
+        label.textContent = `Localização obtida (±${acc}m)`;
+        coords.textContent = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+      },
+      (err) => {
+        dot.className = 'gps-dot erro';
+        label.textContent = 'Erro ao obter localização — insira manualmente';
+        coords.textContent = '—';
+        latitude = null;
+        longitude = null;
+        document.getElementById('coordsManual').classList.add('show');
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  }
+
+  // Seleção de local
+  function selecionarLocal(el) {
+    document.querySelectorAll('.pill-option').forEach(p => p.classList.remove('selected'));
+    el.classList.add('selected');
+    localSelecionado = el.querySelector('input').value;
+  }
+
+  // Toast
+  function mostrarToast(msg, tipo = '') {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.className = `toast ${tipo} show`;
+    setTimeout(() => toast.className = `toast ${tipo}`, 3000);
+  }
+
+  // ===== FOTOS =====
+  document.getElementById('fotoInput').addEventListener('change', async (e) => {
+    const arquivos = Array.from(e.target.files);
+    for (const arquivo of arquivos) {
+      if (fotos.length >= MAX_FOTOS) {
+        mostrarToast(`⚠️ Máximo de ${MAX_FOTOS} fotos`, 'erro');
+        break;
+      }
+      try {
+        const dataUrl = await comprimirImagem(arquivo);
+        fotos.push({
+          nome: `foto_${Date.now()}_${fotos.length + 1}.jpg`,
+          dataUrl: dataUrl
+        });
+      } catch (err) {
+        mostrarToast('❌ Erro ao processar a foto', 'erro');
+      }
+    }
+    e.target.value = '';
+    renderFotos();
+  });
+
+  // Redimensiona e comprime a imagem antes de enviar (reduz o tamanho do payload)
+  function comprimirImagem(arquivo, maxLado = 1280, qualidade = 0.7) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          let w = img.width;
+          let h = img.height;
+          if (w > h && w > maxLado) {
+            h = Math.round(h * maxLado / w);
+            w = maxLado;
+          } else if (h >= w && h > maxLado) {
+            w = Math.round(w * maxLado / h);
+            h = maxLado;
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', qualidade));
+        };
+        img.onerror = reject;
+        img.src = ev.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(arquivo);
+    });
+  }
+
+  function renderFotos() {
+    const grid = document.getElementById('fotosGrid');
+    grid.innerHTML = '';
+    fotos.forEach((foto, i) => {
+      const div = document.createElement('div');
+      div.className = 'foto-thumb';
+      div.innerHTML = `<img src="${foto.dataUrl}" alt="foto"><button type="button" class="foto-remove" onclick="removerFoto(${i})">&times;</button>`;
+      grid.appendChild(div);
+    });
+    document.getElementById('fotoAddBtn').classList.toggle('hide', fotos.length >= MAX_FOTOS);
+  }
+
+  function removerFoto(i) {
+    fotos.splice(i, 1);
+    renderFotos();
+  }
+
+  // Envio
+  async function enviarFormulario(e) {
+    e.preventDefault();
+
+    // Tenta coords manuais se GPS não obtido
+    if (!latitude || !longitude) {
+      const latM = parseFloat(document.getElementById('latManual').value);
+      const lonM = parseFloat(document.getElementById('lonManual').value);
+      if (!isNaN(latM) && !isNaN(lonM)) {
+        latitude = latM;
+        longitude = lonM;
+      } else {
+        mostrarToast('⚠️ Informe as coordenadas manualmente', 'erro');
+        return;
+      }
+    }
+
+    if (!localSelecionado) {
+      mostrarToast('⚠️ Selecione onde está o vazamento', 'erro');
+      return;
+    }
+
+    const btn = document.getElementById('btnSubmit');
+    btn.classList.add('loading');
+    btn.disabled = true;
+
+    const agora = new Date();
+    const dataTitulo = String(agora.getDate()).padStart(2,'0') + '/' + String(agora.getMonth()+1).padStart(2,'0') + '/' + agora.getFullYear() + ' ' + String(agora.getHours()).padStart(2,'0') + ':' + String(agora.getMinutes()).padStart(2,'0');
+    const cidadeVal = document.getElementById('cidade').value;
+
+    const payload = {
+      titulo: cidadeVal + ' - ' + dataTitulo,
+      cidade: cidadeVal,
+      responsavel: document.getElementById('responsavel').value,
+      endereco: document.getElementById('endereco').value,
+      hd: document.getElementById('hd').value,
+      latitude: latitude,
+      longitude: longitude,
+      descricao: document.getElementById('descricao').value,
+      pavimento: document.getElementById('pavimento').value,
+      tipoVazamento: localSelecionado,
+      fotos: fotos.map(f => ({
+        nome: f.nome,
+        conteudo: f.dataUrl.split(',')[1]
+      }))
     };
 
-    const CONFIG = {
-        colors: { 
-            vrp: '#0627bd',      // Azul
-            registro: '#c01919', // Vermelho
-            rede: '#07d100',     // Verde
-            ainf: '#00ced1'      // Ciano (Área de Influência)
-        }
-    };
+    try {
+      const response = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
 
-    const state = {
-        data: { obras: [], itensExcel: [], geoAinf: null, geoItens: null },
-        map: null,
-        layers: { ainf: L.featureGroup(), itens: L.featureGroup() },
-        filesLoaded: { excel: false, ainf: false, itens: false },
-        geoLayersMap: {} 
-    };
-
-    const normalizeCity = (n) => n ? (CITY_MAP[n.toUpperCase().trim()] || n) : "";
-    const formatBRL = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 2 }).format(v || 0);
-    const formatNum = (v) => new Intl.NumberFormat('pt-BR').format(v || 0);
-    const formatPct = (v) => ((v || 0) * 100).toFixed(1).replace('.', ',') + '%';
-
-    function initMap() {
-        state.map = L.map('map', { zoomControl: false }).setView([-29.79, -55.81], 12);
-        L.control.zoom({ position: 'bottomright' }).addTo(state.map);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(state.map);
-        state.layers.ainf.addTo(state.map);
-        state.layers.itens.addTo(state.map);
+      if (response.ok || response.status === 202) {
+        document.getElementById('formView').style.display = 'none';
+        document.getElementById('successScreen').classList.add('show');
+      } else {
+        throw new Error(`Erro ${response.status}`);
+      }
+    } catch (err) {
+      mostrarToast('❌ Erro ao enviar — verifique a conexão', 'erro');
+      btn.classList.remove('loading');
+      btn.disabled = false;
     }
+  }
 
-    function checkAllLoaded() {
-        if (state.filesLoaded.excel && state.filesLoaded.ainf && state.filesLoaded.itens) {
-            document.getElementById('empty-state-msg').style.display = 'none';
-            document.getElementById('loading').style.display = 'none';
-            populateFilters();
-            updateDashboard();
-        }
-    }
+  // Novo registro
+  function novoRegistro() {
+    document.getElementById('formVazamento').reset();
+    document.querySelectorAll('.pill-option').forEach(p => p.classList.remove('selected'));
+    localSelecionado = null;
+    fotos = [];
+    renderFotos();
+    document.getElementById('latManual').value = '';
+    document.getElementById('lonManual').value = '';
+    document.getElementById('coordsManual').classList.remove('show');
+    document.getElementById('formView').style.display = 'block';
+    document.getElementById('successScreen').classList.remove('show');
+    obterGPS();
+  }
 
-    document.getElementById('upload-excel').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            state.data.obras = XLSX.utils.sheet_to_json(workbook.Sheets['OBRAS']);
-            state.data.itensExcel = XLSX.utils.sheet_to_json(workbook.Sheets['ITEM']);
-            state.filesLoaded.excel = true;
-            document.getElementById('label-excel').classList.add('loaded');
-            document.getElementById('label-excel').querySelector('span').textContent = "Excel Carregado";
-            checkAllLoaded();
-        };
-        reader.readAsArrayBuffer(file);
-    });
-
-    document.getElementById('upload-ainf').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            state.data.geoAinf = JSON.parse(e.target.result);
-            state.filesLoaded.ainf = true;
-            document.getElementById('label-ainf').classList.add('loaded');
-            document.getElementById('label-ainf').querySelector('span').textContent = "GeoJSON AINF Carregado";
-            checkAllLoaded();
-        };
-        reader.readAsText(file);
-    });
-
-    document.getElementById('upload-itens').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            state.data.geoItens = JSON.parse(e.target.result);
-            state.filesLoaded.itens = true;
-            document.getElementById('label-itens').classList.add('loaded');
-            document.getElementById('label-itens').querySelector('span').textContent = "GeoJSON Itens Carregado";
-            checkAllLoaded();
-        };
-        reader.readAsText(file);
-    });
-
-    function populateFilters() {
-        const selCidade = document.getElementById('filter-cidade');
-        const cidades = [...new Set(state.data.obras.map(o => o.municipio))].map(c => ({raw: c, clean: normalizeCity(c)})).sort((a,b) => a.clean.localeCompare(b.clean));
-        selCidade.innerHTML = '<option value="">Todos</option>';
-        cidades.forEach(c => { 
-            const opt = document.createElement('option'); 
-            opt.value = c.raw; opt.textContent = c.clean; selCidade.appendChild(opt); 
-        });
-        updateObraFilter();
-    }
-
-    function updateObraFilter() {
-        const selObra = document.getElementById('filter-obra');
-        const cid = document.getElementById('filter-cidade').value;
-        selObra.innerHTML = '<option value="">Todas as Obras</option>';
-        state.data.obras.filter(o => !cid || o.municipio === cid).sort((a,b) => a.obra.localeCompare(b.obra)).forEach(o => {
-            const opt = document.createElement('option'); opt.value = o.obra; opt.textContent = o.obra; selObra.appendChild(opt);
-        });
-    }
-
-    function updateDashboard() {
-        if (!state.filesLoaded.excel) return;
-        const cid = document.getElementById('filter-cidade').value;
-        const obr = document.getElementById('filter-obra').value;
-        const mapTitle = document.getElementById('map-title');
-        if (obr) mapTitle.textContent = `Obra: ${obr}`;
-        else if (cid) mapTitle.textContent = `Propostas em ${normalizeCity(cid)}`;
-        else mapTitle.textContent = "Mapeamento de Propostas";
-
-        const obrasFiltradas = state.data.obras.filter(o => (!cid || o.municipio === cid) && (!obr || o.obra === obr));
-        const idsObras = obrasFiltradas.map(o => o.obra);
-        const itensFiltrados = state.data.itensExcel.filter(i => idsObras.includes(i.obra));
-        
-        updateKPIs(obrasFiltradas);
-        updateTable(itensFiltrados);
-        updateRanking(state.data.obras.filter(o => !cid || o.municipio === cid));
-        renderMap(idsObras);
-    }
-
-    function updateKPIs(obras) {
-        const capex = obras.reduce((a, b) => a + (b.capex || 0), 0);
-        const opex = obras.reduce((a, b) => a + (b['reducao_opex'] || 0), 0);
-        const vaz = obras.reduce((a, b) => a + (b['vaz-ano_evitado'] || 0), 0);
-        
-        const obrasComPressao = obras.filter(o => o['reducao_de_pressao-mca'] !== undefined && o['reducao_de_pressao-mca'] !== null && !isNaN(parseFloat(o['reducao_de_pressao-mca'])));
-        const pressaoMedia = obrasComPressao.length ? (obrasComPressao.reduce((a, b) => a + parseFloat(b['reducao_de_pressao-mca']), 0) / obrasComPressao.length) : 0;
-
-        document.getElementById('kpi-capex').textContent = formatBRL(capex);
-        document.getElementById('kpi-opex').textContent = formatBRL(opex);
-        document.getElementById('kpi-vaz').textContent = formatNum(vaz);
-        document.getElementById('kpi-pressao').textContent = pressaoMedia.toFixed(1).replace('.', ',') + ' mca';
-    }
-
-    function updateTable(itens) {
-        const tbody = document.querySelector('#table-itens tbody');
-        tbody.innerHTML = '';
-        const itensOrdenados = [...itens].sort((a, b) => (b.capex || 0) - (a.capex || 0));
-        itensOrdenados.forEach((i, index) => {
-            const tr = document.createElement('tr');
-            const unidFormatada = (i.unidade || '').toLowerCase() === 'unidade' ? 'und' : (i.unidade || 'und');
-            tr.innerHTML = `
-                <td class="td-rank">${index + 1}</td>
-                <td>${i.item || ''}</td>
-                <td>${i.descricao || ''}</td>
-                <td>${formatNum(i.quantidade)} ${unidFormatada}</td>
-                <td>${i.dn_cv_m3 || '-'}</td>
-                <td>${formatBRL(i.pu)}</td>
-                <td style="font-weight:bold; color:var(--text-main);">${formatBRL(i.capex)}</td>
-            `;
-            tr.onclick = () => {
-                document.querySelectorAll('#table-itens tr').forEach(r => r.classList.remove('active-row'));
-                tr.classList.add('active-row');
-                const layer = state.geoLayersMap[i.key_qgis];
-                if (layer) {
-                    if (layer.getBounds) state.map.flyToBounds(layer.getBounds(), { padding: [50, 50], duration: 1.5 });
-                    else if (layer.getLatLng) state.map.flyTo(layer.getLatLng(), 18, { duration: 1.5 });
-                    setTimeout(() => layer.openPopup(), 1600);
-                }
-            };
-            tbody.appendChild(tr);
-        });
-    }
-
-    function updateRanking(obras) {
-        const rankingList = document.getElementById('ranking-list');
-        rankingList.innerHTML = '';
-        const top5 = [...obras].sort((a, b) => (b.tir || 0) - (a.tir || 0)).slice(0, 5);
-        top5.forEach((obra, index) => {
-            const item = document.createElement('div');
-            item.className = 'ranking-item';
-            item.innerHTML = `
-                <div class="rank-number">${index + 1}</div>
-                <div class="rank-info">
-                    <div class="rank-name" title="${obra.obra}">${obra.obra}</div>
-                    <div class="rank-city">${normalizeCity(obra.municipio)}</div>
-                </div>
-                <div class="rank-value">${formatPct(obra.tir)}</div>
-            `;
-            item.onclick = () => {
-                document.getElementById('filter-cidade').value = obra.municipio;
-                updateObraFilter();
-                document.getElementById('filter-obra').value = obra.obra;
-                updateDashboard();
-            };
-            rankingList.appendChild(item);
-        });
-        if (top5.length === 0) rankingList.innerHTML = '<p style="text-align:center; color:var(--text-secondary); font-size:0.8rem; margin-top:20px;">Nenhum dado disponível</p>';
-    }
-
-    function getDimLabel(itemType) {
-        const t = (itemType || "").toLowerCase();
-        if (t.includes('booster')) return "CV";
-        if (t.includes('reservatório') || t.includes('reservatorio')) return "M³";
-        return "DN";
-    }
-
-    function renderMap(obrasVisiveis) {
-        if (!state.data.geoAinf || !state.data.geoItens) return;
-        state.layers.ainf.clearLayers();
-        state.layers.itens.clearLayers();
-        state.geoLayersMap = {}; 
-        L.geoJSON(state.data.geoAinf, {
-            filter: (f) => obrasVisiveis.includes(f.properties.obra),
-            style: { color: CONFIG.colors.ainf, weight: 1, opacity: 0.8, fillOpacity: 0.5 },
-            onEachFeature: (f, layer) => {
-                const obra = state.data.obras.find(o => o.obra === f.properties.obra);
-                if (obra) {
-                    layer.bindPopup(`
-                        <div class="custom-tooltip">
-                            <div class="tooltip-header"><span>${normalizeCity(obra.municipio)}</span> | <span>${obra.zona || ''}</span></div>
-                            <div class="tooltip-grid">
-                                <div class="tooltip-item-box"><div class="tooltip-label-mini">EXTENSÃO</div><div style="font-weight:bold;">${formatNum(Math.ceil(obra['extensao-m']))} m</div></div>
-                                <div class="tooltip-item-box"><div class="tooltip-label-mini">CAPEX</div><div style="font-weight:bold;">${formatBRL(obra.capex)}</div></div>
-                            </div>
-                            <div class="tooltip-footer-grid">
-                                <div class="tooltip-item-box"><div class="tooltip-label-mini">VAZ. EVITADOS/ANO</div><div>${formatNum(obra['vaz-ano_evitado'])}</div></div>
-                                <div class="tooltip-item-box"><div class="tooltip-label-mini">RED. PRESSÃO</div><div>${obra['reducao_de_pressao-mca'] || '-'}</div></div>
-                                <div class="tooltip-item-box"><div class="tooltip-label-mini">TIR</div><div>${formatPct(obra.tir)}</div></div>
-                            </div>
-                        </div>
-                    `);
-                }
-            }
-        }).addTo(state.layers.ainf);
-
-        L.geoJSON(state.data.geoItens, {
-            filter: (f) => obrasVisiveis.includes(f.properties.obra),
-            style: (f) => {
-                const t = (f.properties.item || "").toLowerCase();
-                const ln = (f.properties.layer_name || "").toLowerCase();
-                let color = CONFIG.colors.rede;
-                if (t.includes('vrp') || ln.includes('vrp')) color = CONFIG.colors.vrp;
-                else if (t.includes('registro') || ln.includes('isovalve') || ln.includes('tcv')) color = CONFIG.colors.registro;
-                return { color: color, weight: 5, opacity: 0.9 };
-            },
-            pointToLayer: (f, latlng) => {
-                const t = (f.properties.item || "").toLowerCase();
-                const ln = (f.properties.layer_name || "").toLowerCase();
-                let color = CONFIG.colors.rede;
-                if (t.includes('vrp') || ln.includes('vrp')) color = CONFIG.colors.vrp;
-                else if (t.includes('registro') || ln.includes('isovalve') || ln.includes('tcv')) color = CONFIG.colors.registro;
-                return L.circleMarker(latlng, { radius: 7, fillColor: color, color: '#fff', weight: 1.5, fillOpacity: 1 });
-            },
-            onEachFeature: (f, layer) => {
-                const item = state.data.itensExcel.find(i => i.key_qgis === f.properties.key_qgis);
-                if (item) {
-                    state.geoLayersMap[f.properties.key_qgis] = layer; 
-                    layer.bindPopup(`
-                        <div class="custom-tooltip">
-                            <div class="tooltip-header"><span>${normalizeCity(item.municipio)}</span> | <span>${item.zona || ''}</span></div>
-                            <div class="tooltip-main-item">${item.item || 'Item'}</div>
-                            <div class="tooltip-desc">${item.descricao || ''}</div>
-                            <div class="tooltip-item-box"><div class="tooltip-label-mini">CAPEX</div><div class="tooltip-highlight">${formatBRL(item.capex)}</div></div>
-                            <div class="tooltip-row-inline">
-                                <div class="tooltip-item-box"><div class="tooltip-label-mini">${getDimLabel(item.item)}</div><div>${item.dn_cv_m3 || '-'}</div></div>
-                                <div class="tooltip-item-box"><div class="tooltip-label-mini">QNTD</div><div>${formatNum(item.quantidade)}</div></div>
-                                <div class="tooltip-item-box"><div class="tooltip-label-mini">PU</div><div>${formatBRL(item.pu)}</div></div>
-                            </div>
-                        </div>
-                    `);
-                }
-            }
-        }).addTo(state.layers.itens);
-
-        const bounds = L.latLngBounds();
-        let hasGeom = false;
-        [state.layers.ainf, state.layers.itens].forEach(g => g.eachLayer(l => {
-            if (l.getBounds) { bounds.extend(l.getBounds()); hasGeom = true; }
-            else if (l.getLatLng) { bounds.extend(l.getLatLng()); hasGeom = true; }
-        }));
-        if (hasGeom && bounds.isValid()) state.map.flyToBounds(bounds, { padding: [30, 30], duration: 1.5 });
-    }
-
-    document.getElementById('filter-cidade').addEventListener('change', () => { updateObraFilter(); updateDashboard(); });
-    document.getElementById('filter-obra').addEventListener('change', () => updateDashboard());
-    document.getElementById('btn-reset').addEventListener('click', () => {
-        document.getElementById('filter-cidade').value = ''; updateObraFilter();
-        document.getElementById('filter-obra').value = ''; updateDashboard();
-    });
-
-    window.onload = () => { initMap(); document.getElementById('loading').style.display = 'none'; };
+  // Inicia GPS ao carregar
+  obterGPS();
 </script>
 </body>
 </html>
